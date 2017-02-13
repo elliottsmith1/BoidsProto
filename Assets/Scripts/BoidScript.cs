@@ -4,7 +4,6 @@ using System.Collections.Generic;
 
 public class BoidScript : MonoBehaviour {
 
-    public float speed = 1.0f;
     Vector3 position;
     Vector3 velocity;
     Vector3 acceleration;
@@ -28,9 +27,9 @@ public class BoidScript : MonoBehaviour {
         float angle = Random.Range(0.1f, 1.0f);
         velocity = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
 
-        position = new Vector3(5, 0, 5);
+        position = transform.position;
         r = 2.0f;
-        maxspeed = 2;
+        maxspeed = 0.1f;
         maxforce = 0.03f;
     }
 
@@ -52,11 +51,20 @@ public class BoidScript : MonoBehaviour {
         Vector3 sep = separate(boids);   // Separation
         Vector3 ali = align(boids);      // Alignment
         Vector3 coh = cohesion(boids);   // Cohesion
-                                         // Arbitrarily weight these forces
+        Vector3 boun = new Vector3(0, 0, 0);
+
+        for (int i = 0; i < boids.Count; i++)
+        {
+            boun = boundingBox(boids[i]);
+        }
+        
+        // Arbitrarily weight these forces
         sep *= 1.5f;
         ali *= 1.0f;
         coh *= 1.0f;
+        boun *= 1.0f;
         // Add the force vectors to acceleration
+        applyForce(boun);
         applyForce(sep);
         applyForce(ali);
         applyForce(coh);
@@ -69,7 +77,7 @@ public class BoidScript : MonoBehaviour {
         velocity += acceleration;
         // Limit speed
         velocity = Vector3.ClampMagnitude(velocity, maxspeed);
-        position += velocity;
+        transform.position += velocity;
         // Reset accelertion to 0 each cycle
         acceleration *= 0;
     }
@@ -78,7 +86,7 @@ public class BoidScript : MonoBehaviour {
     // STEER = DESIRED MINUS VELOCITY
     Vector3 seek(Vector3 target)
     {
-        Vector3 desired = (target - position);  // A vector pointing from the position to the target
+        Vector3 desired = (target - transform.position);  // A vector pointing from the position to the target
                                                           // Scale to maximum speed
         desired.Normalize();
         desired *= maxspeed;
@@ -93,22 +101,60 @@ public class BoidScript : MonoBehaviour {
         return steer;
     }
 
+    Vector3 boundingBox(BoidScript b)
+    {
+        int Xmin = 1, Xmax = 25, Ymin = -1, Ymax = 1, Zmin = 1, Zmax = 25;
+        Vector3 v = new Vector3(0, 0, 0);
+
+            if (b.transform.position.x < Xmin)
+            {
+                v.x = 0.5f;
+            }
+
+            else if (b.transform.position.x > Xmax)
+            {
+                v.x = -0.5f;
+
+            }
+            if (b.transform.position.y < Ymin)
+            {
+                v.y = 0.1f;
+            }
+
+            else if (b.transform.position.y > Ymax)
+            {
+                v.y = -0.1f;
+            }
+
+            if (b.transform.position.z < Zmin)
+            {
+                v.z = 0.5f;
+            }
+
+            else if (b.transform.position.z > Zmax)
+            {
+                v.z = -0.5f;
+            }
+
+        return v;
+    }
+
     // Separation
     // Method checks for nearby boids and steers away
     Vector3 separate(List<BoidScript> boids)
     {
-        float desiredseparation = 25.0f;
+        float desiredseparation = 0.75f;
         Vector3 steer = new Vector3(0, 0, 0);
         int count = 0;
         // For every boid in the system, check if it's too close
         for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(position, boids[i].position);
+            float d = Vector3.Distance(transform.position, boids[i].transform.position);
             // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
             if ((d > 0) && (d < desiredseparation))
             {
                 // Calculate vector pointing away from neighbor
-                Vector3 diff = (position - boids[i].position);
+                Vector3 diff = (transform.position - boids[i].transform.position);
                 diff.Normalize();
                 diff /= d;        // Weight by distance
                 steer += diff;
@@ -141,12 +187,12 @@ public class BoidScript : MonoBehaviour {
     // For every nearby boid in the system, calculate the average velocity
     Vector3 align(List<BoidScript> boids)
     {
-        float neighbordist = 50;
+        float neighbordist = 2;
         Vector3 sum = new Vector3(0, 0);
         int count = 0;
         for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(position, boids[i].position);
+            float d = Vector3.Distance(transform.position, boids[i].transform.position);
             if ((d > 0) && (d < neighbordist))
             {
                 sum += boids[i].velocity;
@@ -177,15 +223,15 @@ public class BoidScript : MonoBehaviour {
     // For the average position (i.e. center) of all nearby boids, calculate steering vector towards that position
     Vector3 cohesion(List<BoidScript> boids)
     {
-        float neighbordist = 50;
+        float neighbordist = 2;
         Vector3 sum = new Vector3(0, 0);   // Start with empty vector to accumulate all positions
         int count = 0;
         for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(position, boids[i].position);
+            float d = Vector3.Distance(transform.position, boids[i].transform.position);
             if ((d > 0) && (d < neighbordist))
             {
-                sum += boids[i].position; // Add position
+                sum += boids[i].transform.position; // Add position
                 count++;
             }
         }
@@ -196,7 +242,7 @@ public class BoidScript : MonoBehaviour {
         }
         else
         {
-            return new Vector3(0, 0);
+            return new Vector3(0, 0, 0);
         }
     }
 }
