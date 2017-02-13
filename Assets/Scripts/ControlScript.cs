@@ -19,9 +19,9 @@ public class ControlScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-        for (int i = 0; i < boids.Length; i++)
+        for (int i = 0; i < boids.Count; i++)
         {
-            boids[i].GetComponent<BoidScript>().run(boids[i]);
+            boids[i].GetComponent<BoidScript>().runBoid(boids);
         }
 
             /*Vector3 v1;

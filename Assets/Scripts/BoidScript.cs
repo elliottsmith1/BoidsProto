@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BoidScript : MonoBehaviour {
 
@@ -15,35 +16,28 @@ public class BoidScript : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
+
+        GameObject.FindGameObjectWithTag("Control").GetComponent<ControlScript>().addBoid(this);
+
         acceleration = new Vector3(0, 0);
 
         // This is a new Vector3 method not yet implemented in JS
         // velocity = Vector3.random2D();
 
         // Leaving the code temporarily this way so that this example runs in JS
-        float angle = random(TWO_PI);
-        velocity = new Vector3(cos(angle), sin(angle));
+        float angle = Random.Range(0.1f, 1.0f);
+        velocity = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
 
-        position = new Vector3(x, y);
-        r = 2.0;
+        position = new Vector3(5, 0, 5);
+        r = 2.0f;
         maxspeed = 2;
-        maxforce = 0.03;
-    }
-	
-	// Update is called once per frame
-	void FixedUpdate () {
-
+        maxforce = 0.03f;
     }
 
-    public void run(GameObject b)
+    public void runBoid(List<BoidScript> boids)
     {
-        flock(b);
-        update();
-    }
-
-    Boid(float x, float y)
-    {
-        
+        flock(boids);
+        updateBoid();
     }
 
     void applyForce(Vector3 force)
@@ -53,7 +47,7 @@ public class BoidScript : MonoBehaviour {
     }
 
     // We accumulate a new acceleration each time based on three rules
-    void flock(ArrayList<Boid> boids)
+    void flock(List<BoidScript> boids)
     {
         Vector3 sep = separate(boids);   // Separation
         Vector3 ali = align(boids);      // Alignment
@@ -69,7 +63,7 @@ public class BoidScript : MonoBehaviour {
     }
 
     // Method to update position
-    void update()
+    void updateBoid()
     {
         // Update velocity
         velocity += acceleration;
@@ -101,20 +95,20 @@ public class BoidScript : MonoBehaviour {
 
     // Separation
     // Method checks for nearby boids and steers away
-    Vector3 separate(ArrayList<Boid> boids)
+    Vector3 separate(List<BoidScript> boids)
     {
         float desiredseparation = 25.0f;
         Vector3 steer = new Vector3(0, 0, 0);
         int count = 0;
         // For every boid in the system, check if it's too close
-        for (Boid other : boids)
+        for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(position, other.position);
+            float d = Vector3.Distance(position, boids[i].position);
             // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
             if ((d > 0) && (d < desiredseparation))
             {
                 // Calculate vector pointing away from neighbor
-                Vector3 diff = (position - other.position);
+                Vector3 diff = (position - boids[i].position);
                 diff.Normalize();
                 diff /= d;        // Weight by distance
                 steer += diff;
@@ -145,17 +139,17 @@ public class BoidScript : MonoBehaviour {
 
     // Alignment
     // For every nearby boid in the system, calculate the average velocity
-    Vector3 align(ArrayList<Boid> boids)
+    Vector3 align(List<BoidScript> boids)
     {
         float neighbordist = 50;
         Vector3 sum = new Vector3(0, 0);
         int count = 0;
-        for (Boid other : boids)
+        for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(position, other.position);
+            float d = Vector3.Distance(position, boids[i].position);
             if ((d > 0) && (d < neighbordist))
             {
-                sum += other.velocity;
+                sum += boids[i].velocity;
                 count++;
             }
         }
@@ -181,17 +175,17 @@ public class BoidScript : MonoBehaviour {
 
     // Cohesion
     // For the average position (i.e. center) of all nearby boids, calculate steering vector towards that position
-    Vector3 cohesion(ArrayList<Boid> boids)
+    Vector3 cohesion(List<BoidScript> boids)
     {
         float neighbordist = 50;
         Vector3 sum = new Vector3(0, 0);   // Start with empty vector to accumulate all positions
         int count = 0;
-        for (Boid other : boids)
+        for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(position, other.position);
+            float d = Vector3.Distance(position, boids[i].position);
             if ((d > 0) && (d < neighbordist))
             {
-                sum += other.position; // Add position
+                sum += boids[i].position; // Add position
                 count++;
             }
         }
@@ -205,5 +199,4 @@ public class BoidScript : MonoBehaviour {
             return new Vector3(0, 0);
         }
     }
-}
 }
