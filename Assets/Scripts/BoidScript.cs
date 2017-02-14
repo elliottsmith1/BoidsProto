@@ -20,11 +20,8 @@ public class BoidScript : MonoBehaviour {
 
         acceleration = new Vector3(0, 0);
 
-        // This is a new Vector3 method not yet implemented in JS
-        // velocity = Vector3.random2D();
-
         // Leaving the code temporarily this way so that this example runs in JS
-        float angle = Random.Range(0.1f, 1.0f);
+        float angle = Random.Range(0.1f, 359.0f);
         velocity = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
 
         position = transform.position;
@@ -91,10 +88,6 @@ public class BoidScript : MonoBehaviour {
         desired.Normalize();
         desired *= maxspeed;
 
-        // Above two lines of code below could be condensed with new Vector3 setMag() method
-        // Not using this method until Processing.js catches up
-        // desired.setMag(maxspeed);
-
         // Steering = Desired minus Velocity
         Vector3 steer = (desired - velocity);
         steer = Vector3.ClampMagnitude(steer, maxforce);  // Limit to maximum steering force
@@ -108,32 +101,32 @@ public class BoidScript : MonoBehaviour {
 
             if (b.transform.position.x < Xmin)
             {
-                v.x = 0.5f;
+                v.x += 0.5f;
             }
 
             else if (b.transform.position.x > Xmax)
             {
-                v.x = -0.5f;
+                v.x += -0.5f;
 
             }
             if (b.transform.position.y < Ymin)
             {
-                v.y = 0.1f;
+                v.y += 0.1f;
             }
 
             else if (b.transform.position.y > Ymax)
             {
-                v.y = -0.1f;
+                v.y += -0.1f;
             }
 
             if (b.transform.position.z < Zmin)
             {
-                v.z = 0.5f;
+                v.z += 0.5f;
             }
 
             else if (b.transform.position.z > Zmax)
             {
-                v.z = -0.5f;
+                v.z += -0.5f;
             }
 
         return v;
@@ -143,22 +136,25 @@ public class BoidScript : MonoBehaviour {
     // Method checks for nearby boids and steers away
     Vector3 separate(List<BoidScript> boids)
     {
-        float desiredseparation = 0.75f;
+        float desiredseparation = 1.0f;
         Vector3 steer = new Vector3(0, 0, 0);
         int count = 0;
         // For every boid in the system, check if it's too close
         for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(transform.position, boids[i].transform.position);
-            // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
-            if ((d > 0) && (d < desiredseparation))
+            if (checkColour(this, boids[i]))
             {
-                // Calculate vector pointing away from neighbor
-                Vector3 diff = (transform.position - boids[i].transform.position);
-                diff.Normalize();
-                diff /= d;        // Weight by distance
-                steer += diff;
-                count++;            // Keep track of how many
+                float d = Vector3.Distance(transform.position, boids[i].transform.position);
+                // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
+                if ((d > 0) && (d < desiredseparation))
+                {
+                    // Calculate vector pointing away from neighbor
+                    Vector3 diff = (transform.position - boids[i].transform.position);
+                    diff.Normalize();
+                    diff /= d;        // Weight by distance
+                    steer += diff;
+                    count++;            // Keep track of how many
+                }
             }
         }
         // Average -- divide by how many
@@ -170,10 +166,6 @@ public class BoidScript : MonoBehaviour {
         // As long as the vector is greater than 0
         if (steer.magnitude > 0)
         {
-            // First two lines of code below could be condensed with new Vector3 setMag() method
-            // Not using this method until Processing.js catches up
-            // steer.setMag(maxspeed);
-
             // Implement Reynolds: Steering = Desired - Velocity
             steer.Normalize();
             steer *= maxspeed;
@@ -187,24 +179,24 @@ public class BoidScript : MonoBehaviour {
     // For every nearby boid in the system, calculate the average velocity
     Vector3 align(List<BoidScript> boids)
     {
-        float neighbordist = 2;
+        float neighbordist = 2.5f;
         Vector3 sum = new Vector3(0, 0);
         int count = 0;
         for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(transform.position, boids[i].transform.position);
-            if ((d > 0) && (d < neighbordist))
+            if (checkColour(this, boids[i]))
             {
-                sum += boids[i].velocity;
-                count++;
+                float d = Vector3.Distance(transform.position, boids[i].transform.position);
+                if ((d > 0) && (d < neighbordist))
+                {
+                    sum += boids[i].velocity;
+                    count++;
+                }
             }
         }
         if (count > 0)
         {
             sum /= ((float)count);
-            // First two lines of code below could be condensed with new Vector3 setMag() method
-            // Not using this method until Processing.js catches up
-            // sum.setMag(maxspeed);
 
             // Implement Reynolds: Steering = Desired - Velocity
             sum.Normalize();
@@ -223,18 +215,22 @@ public class BoidScript : MonoBehaviour {
     // For the average position (i.e. center) of all nearby boids, calculate steering vector towards that position
     Vector3 cohesion(List<BoidScript> boids)
     {
-        float neighbordist = 2;
+        float neighbordist = 2.5f;
         Vector3 sum = new Vector3(0, 0);   // Start with empty vector to accumulate all positions
         int count = 0;
         for (int i = 0; i < boids.Count; i++)
         {
-            float d = Vector3.Distance(transform.position, boids[i].transform.position);
-            if ((d > 0) && (d < neighbordist))
+            if (checkColour(this, boids[i]))
             {
-                sum += boids[i].transform.position; // Add position
-                count++;
+                float d = Vector3.Distance(transform.position, boids[i].transform.position);
+                if ((d > 0) && (d < neighbordist))
+                {
+                    sum += boids[i].transform.position; // Add position
+                    count++;
+                }
             }
         }
+
         if (count > 0)
         {
             sum /= count;
@@ -243,6 +239,19 @@ public class BoidScript : MonoBehaviour {
         else
         {
             return new Vector3(0, 0, 0);
+        }
+    }
+
+    bool checkColour(BoidScript b, BoidScript c)
+    {
+        if (b.gameObject.tag == c.gameObject.tag)
+        {
+            return true;
+        }
+
+        else
+        {
+            return false;
         }
     }
 }
